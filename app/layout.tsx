@@ -6,7 +6,7 @@ import Link from "next/link";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Prowider — Lead Distribution System",
+  title: "Book My Packers — Lead Distribution System",
   description: "A mini lead distribution system that fairly allocates service enquiries to providers with real-time dashboard updates.",
     icons: {
     icon: ['/favicon.png']
