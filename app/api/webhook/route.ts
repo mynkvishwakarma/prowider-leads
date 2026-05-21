@@ -39,6 +39,25 @@ export async function POST(req: NextRequest) {
           data: { idempotencyKey, eventType },
         });
 
+        // Delete all lead assignments from the current month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        await tx.leadAssignment.deleteMany({
+          where: {
+            assignedAt: { gte: startOfMonth, lte: endOfMonth },
+          },
+        });
+
         // Reset all providers
         await tx.provider.updateMany({
           data: { monthlyQuota: 10 },
@@ -88,6 +107,26 @@ export async function POST(req: NextRequest) {
         // Record webhook event
         await tx.webhookEvent.create({
           data: { idempotencyKey, eventType },
+        });
+
+        // Delete this provider's lead assignments from the current month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        await tx.leadAssignment.deleteMany({
+          where: {
+            providerId: pId,
+            assignedAt: { gte: startOfMonth, lte: endOfMonth },
+          },
         });
 
         // Reset only this provider
