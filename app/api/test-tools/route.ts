@@ -24,12 +24,14 @@ export async function POST(req: NextRequest) {
     if (action === "BULK_LEADS") {
       // Generate 10 leads simultaneously across all 3 services
       const count = body.count ?? 10;
-      const uniqueId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 
       const promises = Array.from({ length: count }, async (_, i) => {
         const serviceId = (i % 3) + 1;
-        // Create guaranteed unique phone: 9 + 9 digits from counter + uniqueId
-        const phone = `9${String(i).padStart(9, '0')}${uniqueId}`.slice(0, 10);
+        // Create truly unique phone: 9 + timestamp + random (10 digits total)
+        const timestamp = Date.now().toString().slice(-6); // last 6 digits of timestamp
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0'); // 3 random digits
+        const counter = String(i).padStart(1, '0'); // 1 digit counter
+        const phone = `9${timestamp}${random}${counter}`;
         const name = NAMES[i % NAMES.length];
         const city = CITIES[i % CITIES.length];
         const desc = DESCS[i % DESCS.length];
