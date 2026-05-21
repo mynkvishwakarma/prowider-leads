@@ -33,36 +33,39 @@ export async function POST(req: NextRequest) {
 
     if (eventType === "QUOTA_RESET") {
       // Reset all provider quotas to 10
-      await prisma.$transaction(async (tx) => {
-        // Record webhook event first (inside transaction for atomicity)
-        await tx.webhookEvent.create({
-          data: { idempotencyKey, eventType },
-        });
+      await prisma.$transaction(
+        async (tx) => {
+          // Record webhook event first (inside transaction for atomicity)
+          await tx.webhookEvent.create({
+            data: { idempotencyKey, eventType },
+          });
 
-        // Delete all lead assignments from the current month
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
+          // Delete all lead assignments from the current month
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const endOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
 
-        await tx.leadAssignment.deleteMany({
-          where: {
-            assignedAt: { gte: startOfMonth, lte: endOfMonth },
-          },
-        });
+          await tx.leadAssignment.deleteMany({
+            where: {
+              assignedAt: { gte: startOfMonth, lte: endOfMonth },
+            },
+          });
 
-        // Reset all providers
-        await tx.provider.updateMany({
-          data: { monthlyQuota: 10 },
-        });
-      });
+          // Reset all providers
+          await tx.provider.updateMany({
+            data: { monthlyQuota: 10 },
+          });
+        },
+        { timeout: 15000 }
+      );
 
       // Broadcast quota reset to dashboards
       broadcastLeadUpdate({ type: "QUOTA_RESET" });
@@ -103,38 +106,41 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await prisma.$transaction(async (tx) => {
-        // Record webhook event
-        await tx.webhookEvent.create({
-          data: { idempotencyKey, eventType },
-        });
+      await prisma.$transaction(
+        async (tx) => {
+          // Record webhook event
+          await tx.webhookEvent.create({
+            data: { idempotencyKey, eventType },
+          });
 
-        // Delete this provider's lead assignments from the current month
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
+          // Delete this provider's lead assignments from the current month
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const endOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
 
-        await tx.leadAssignment.deleteMany({
-          where: {
-            providerId: pId,
-            assignedAt: { gte: startOfMonth, lte: endOfMonth },
-          },
-        });
+          await tx.leadAssignment.deleteMany({
+            where: {
+              providerId: pId,
+              assignedAt: { gte: startOfMonth, lte: endOfMonth },
+            },
+          });
 
-        // Reset only this provider
-        await tx.provider.update({
-          where: { id: pId },
-          data: { monthlyQuota: 10 },
-        });
-      });
+          // Reset only this provider
+          await tx.provider.update({
+            where: { id: pId },
+            data: { monthlyQuota: 10 },
+          });
+        },
+        { timeout: 15000 }
+      );
 
       // Broadcast individual provider quota reset
       broadcastLeadUpdate({

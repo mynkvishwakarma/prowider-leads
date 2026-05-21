@@ -44,31 +44,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      // Create lead
-      const lead = await tx.lead.create({
-        data: {
-          customerName,
-          phone,
-          city,
-          description,
-          serviceId: svcId,
-        },
-        include: { service: true },
-      });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // Create lead
+        const lead = await tx.lead.create({
+          data: {
+            customerName,
+            phone,
+            city,
+            description,
+            serviceId: svcId,
+          },
+          include: { service: true },
+        });
 
-      // Run allocation inside the same transaction
-      // This will throw if exactly 3 providers cannot be assigned
-      const assignedProviderIds = await allocateProviders(svcId, lead.id, tx);
+        // Run allocation inside the same transaction
+        // This will throw if exactly 3 providers cannot be assigned
+        const assignedProviderIds = await allocateProviders(svcId, lead.id, tx);
 
-      // Fetch provider names for response
-      const providers = await tx.provider.findMany({
-        where: { id: { in: assignedProviderIds } },
-        select: { id: true, name: true },
-      });
+        // Fetch provider names for response
+        const providers = await tx.provider.findMany({
+          where: { id: { in: assignedProviderIds } },
+          select: { id: true, name: true },
+        });
 
-      return { lead, providers };
-    });
+        return { lead, providers };
+      },
+      { timeout: 15000 }
+    );
 
     // Broadcast to all SSE clients
     broadcastLeadUpdate({

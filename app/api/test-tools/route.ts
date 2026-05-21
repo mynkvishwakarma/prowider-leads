@@ -37,26 +37,29 @@ export async function POST(req: NextRequest) {
         const desc = DESCS[i % DESCS.length];
 
         try {
-          const result = await prisma.$transaction(async (tx) => {
-            const lead = await tx.lead.create({
-              data: {
-                customerName: name,
-                phone,
-                city,
-                description: desc,
-                serviceId,
-              },
-              include: { service: true },
-            });
+          const result = await prisma.$transaction(
+            async (tx) => {
+              const lead = await tx.lead.create({
+                data: {
+                  customerName: name,
+                  phone,
+                  city,
+                  description: desc,
+                  serviceId,
+                },
+                include: { service: true },
+              });
 
-            const assignedIds = await allocateProviders(serviceId, lead.id, tx);
-            const providers = await tx.provider.findMany({
-              where: { id: { in: assignedIds } },
-              select: { id: true, name: true },
-            });
+              const assignedIds = await allocateProviders(serviceId, lead.id, tx);
+              const providers = await tx.provider.findMany({
+                where: { id: { in: assignedIds } },
+                select: { id: true, name: true },
+              });
 
-            return { lead, providers };
-          });
+              return { lead, providers };
+            },
+            { timeout: 15000 }
+          );
 
           broadcastLeadUpdate({
             type: "NEW_LEAD",
