@@ -38,6 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="pt-12">
           {children}
         </div>
+
+        <footer className="">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="text-white font-bold text-sm tracking-wide text-right w-full">
+              Design and Developed by <span className="text-emerald-400">Mayank Vishwakarma</span>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );
